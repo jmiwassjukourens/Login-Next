@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-export default function ProtectedLayout({
+export default function LoginLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -13,16 +13,14 @@ export default function ProtectedLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
+    if (!loading && user) {
+      router.replace("/dashboard");
     }
   }, [user, loading, router]);
 
   if (loading) {
     return <p>Cargando...</p>;
   }
-
-  if (!user) return null;
 
   return <>{children}</>;
 }

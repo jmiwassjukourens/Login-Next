@@ -4,10 +4,6 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "../lib/apiFetch";
 
-type LoginResponse = {
-  username: string;
-};
-
 type AuthContextType = {
   user: string | null;
   loading: boolean;
@@ -23,7 +19,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-    useEffect(() => {
+
+  useEffect(() => {
     checkAuth();
   }, []);
 
@@ -31,41 +28,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     setLoading(true);
     try {
-      const res = await apiFetch<LoginResponse>("login", {
+      await apiFetch("login", {
         method: "POST",
         body: JSON.stringify({ username, password }),
       });
 
-      setUser(res.username);
-      router.push("/dashboard");
+
+      await checkAuth();
+
+      router.replace("/dashboard");
     } finally {
       setLoading(false);
     }
   };
+
 
   const logout = async () => {
     setLoading(true);
     try {
-      await apiFetch("logout", { method: "POST" });
+      await apiFetch("users/logout", { method: "POST" });
       setUser(null);
-      router.push("/");
+      router.push("/login");
     } finally {
       setLoading(false);
     }
   };
 
-const checkAuth = async () => {
-  setLoading(true);
-  try {
-    const res = await apiFetch<{ username: string }>("users/me");
-    setUser(res.username);
-  } catch {
-    setUser(null);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  const checkAuth = async () => {
+    try {
+      const res = await apiFetch<{ username: string }>("users/me");
+      setUser(res.username);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AuthContext.Provider
