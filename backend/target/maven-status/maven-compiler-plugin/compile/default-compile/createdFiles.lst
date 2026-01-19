@@ -13,6 +13,5 @@ com\app\springbootcrud\entities\User.class
 com\app\springbootcrud\services\UserServiceImpl.class
 com\app\springbootcrud\repositories\UserRepository.class
 com\app\springbootcrud\services\JpaUserDetailsService.class
-com\app\springbootcrud\controllers\CsrfController.class
 com\app\springbootcrud\repositories\RoleRepository.class
 com\app\springbootcrud\security\SpringSecurityConfig.class

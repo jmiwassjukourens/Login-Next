@@ -13,11 +13,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.app.springbootcrud.configuration.JwtProperties;
 import com.app.springbootcrud.security.filter.JwtAuthenticationFilter;
 import com.app.springbootcrud.security.filter.JwtValidationFilter;
 
@@ -29,15 +29,12 @@ public class SpringSecurityConfig {
     @Bean
     SecurityFilterChain filterChain(
             HttpSecurity http,
-            AuthenticationManager authenticationManager
+            AuthenticationManager authenticationManager,
+            JwtProperties jwtProperties
     ) throws Exception {
 
         return http
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(
-                    CookieCsrfTokenRepository.withHttpOnlyFalse()
-                )
-                .ignoringRequestMatchers("/login")
+            .csrf(csrf -> csrf.disable()
             )
 
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -48,12 +45,11 @@ public class SpringSecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/login").permitAll()
-                .requestMatchers(HttpMethod.POST, "/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
                 .anyRequest().authenticated()
             )
 
-            .addFilter(new JwtAuthenticationFilter(authenticationManager))
+            .addFilter(new JwtAuthenticationFilter(authenticationManager,jwtProperties))
             .addFilterBefore(
                 new JwtValidationFilter(),
                 UsernamePasswordAuthenticationFilter.class
@@ -82,7 +78,8 @@ public class SpringSecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         config.setAllowedHeaders(List.of(
             "Content-Type",
-            "X-XSRF-TOKEN"
+            "X-XSRF-TOKEN",
+            "Authorization"
         ));
         config.setAllowCredentials(true);
 
@@ -91,4 +88,6 @@ public class SpringSecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
+
 }

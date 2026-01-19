@@ -13,6 +13,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.app.springbootcrud.configuration.JwtProperties;
 import com.app.springbootcrud.entities.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -28,12 +29,14 @@ public class JwtAuthenticationFilter
         extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
+    private final JwtProperties jwtProperties;
 
     private static final long EXPIRATION =
-        10 * 60 * 1000; // 10 minutos
+        20 * 60 * 1000; 
 
-    public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
+    public JwtAuthenticationFilter(AuthenticationManager authenticationManager,JwtProperties jwtProperties) {
         this.authenticationManager = authenticationManager;
+        this.jwtProperties = jwtProperties;
         setFilterProcessesUrl("/login");
     }
 
@@ -84,13 +87,14 @@ public class JwtAuthenticationFilter
             .compact();
 
         ResponseCookie jwtCookie = ResponseCookie
-            .from("JWT_TOKEN", token)
-            .httpOnly(true)
-            .secure(true)
-            .sameSite("None")
-            .path("/")
-            .maxAge(EXPIRATION / 1000)
+            .from(jwtProperties.getCookie().getName(), token)
+            .httpOnly(jwtProperties.getCookie().isHttpOnly())
+            .secure(jwtProperties.getCookie().isSecure())
+            .sameSite(jwtProperties.getCookie().getSameSite())
+            .path(jwtProperties.getCookie().getPath())
+            .maxAge(jwtProperties.getExpirationMs() / 1000)
             .build();
+
 
         response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
         response.setContentType("application/json");

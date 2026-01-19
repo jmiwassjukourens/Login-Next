@@ -42,6 +42,10 @@ public class AppInitializer implements CommandLineRunner {
             User user = new User();
             user.setUsername(username);
             user.setPassword(passwordEncoder.encode(password));
+            
+            roleRepository.findByName("ROLE_ADMIN").ifPresent(role -> user.getRoles().add(role));
+            roleRepository.findByName("ROLE_USER").ifPresent(role -> user.getRoles().add(role));
+            
             userRepository.save(user);
             System.out.println("User created: " + username);
         }
