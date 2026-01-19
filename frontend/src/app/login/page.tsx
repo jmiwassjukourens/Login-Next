@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import styles from "./login.module.css";
 import { useAuth } from "@/app/context/AuthContext";
 
@@ -13,14 +12,14 @@ export default function LoginPage() {
   return (
     <div className={styles.container}>
       <div className={`${styles.left} slide-left`}>
-        <Image
+        {/*<Image
           src="/logo.png"
           alt="Company Logo"
           width={300}
           height={300}
           className={styles.logo}
           priority
-        />
+        />*/}
       </div>
 
       <div className={`${styles.right} slide-right`}>

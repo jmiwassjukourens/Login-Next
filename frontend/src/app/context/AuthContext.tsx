@@ -1,24 +1,19 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { apiFetch } from "../lib/apiFetch";
-import { fetchCsrfToken } from "../lib/apiCsrfToken";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "../lib/apiFetch";
 
 type LoginResponse = {
-  message: string;
-  username: string;
-};
-
-type MeResponse = {
   username: string;
 };
 
 type AuthContextType = {
   user: string | null;
   loading: boolean;
-  login: (u: string, p: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -28,39 +23,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-
-  useEffect(() => {
-    fetchCsrfToken();
+    useEffect(() => {
+    checkAuth();
   }, []);
 
-
-  useEffect(() => {
-    apiFetch<MeResponse>("users/me")
-      .then(res => setUser(res.username))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
 
   const login = async (username: string, password: string) => {
-    const res = await apiFetch<LoginResponse>("login", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    });
+    setLoading(true);
+    try {
+      const res = await apiFetch<LoginResponse>("login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
 
-    setUser(res.username);
-    router.push("/dashboard");
+      setUser(res.username);
+      router.push("/dashboard");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
-    await apiFetch("logout", { method: "POST" });
-    setUser(null);
+    setLoading(true);
+    try {
+      await apiFetch("logout", { method: "POST" });
+      setUser(null);
+      router.push("/");
+    } finally {
+      setLoading(false);
+    }
   };
 
+const checkAuth = async () => {
+  setLoading(true);
+  try {
+    const res = await apiFetch<{ username: string }>("users/me");
+    setUser(res.username);
+  } catch {
+    setUser(null);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, setUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext)!;
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+  return ctx;
+};

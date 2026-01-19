@@ -1,17 +1,8 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export function getCsrfTokenFromCookie(): string | null {
+  if (typeof document === "undefined") return null;
 
-let csrfToken: string | null = null;
-
-export async function fetchCsrfToken() {
-  const res = await fetch(`${API_BASE_URL}/csrf`, {
-    credentials: "include",
-  });
-
-  const data = await res.json();
-  csrfToken = data.token;
-}
-
-export function getCsrfToken() {
-  return csrfToken;
+  return document.cookie
+    .split("; ")
+    .find(row => row.startsWith("XSRF-TOKEN="))
+    ?.split("=")[1] ?? null;
 }

@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.app.springbootcrud.entities.User;
 import com.app.springbootcrud.services.UserService;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 @RestController
@@ -99,5 +102,21 @@ public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody User 
             "username", authentication.getName()
         );
     }
+
+    @PostMapping("/logout")
+public void logout(HttpServletResponse response) {
+
+    ResponseCookie cookie = ResponseCookie
+        .from("JWT_TOKEN", "")
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("None")
+        .path("/")
+        .maxAge(0)
+        .build();
+
+    response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+}
+
 
 }

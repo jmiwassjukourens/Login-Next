@@ -1,4 +1,4 @@
-import { getCsrfToken } from "./apiCsrfToken";
+import { getCsrfTokenFromCookie } from "./apiCsrfToken";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -13,7 +13,7 @@ export async function apiFetch<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  const csrfToken = getCsrfToken();
+  const csrfToken =  getCsrfTokenFromCookie();
 
   if (csrfToken && options.method && options.method !== "GET") {
     headers["X-XSRF-TOKEN"] = csrfToken;
