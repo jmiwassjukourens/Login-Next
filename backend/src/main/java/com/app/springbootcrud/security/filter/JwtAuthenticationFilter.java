@@ -31,10 +31,10 @@ public class JwtAuthenticationFilter
     private final AuthenticationManager authenticationManager;
     private final JwtProperties jwtProperties;
 
-    private static final long EXPIRATION =
-        20 * 60 * 1000; 
-
-    public JwtAuthenticationFilter(AuthenticationManager authenticationManager,JwtProperties jwtProperties) {
+    public JwtAuthenticationFilter(
+            AuthenticationManager authenticationManager,
+            JwtProperties jwtProperties
+    ) {
         this.authenticationManager = authenticationManager;
         this.jwtProperties = jwtProperties;
         setFilterProcessesUrl("/login");
@@ -56,8 +56,9 @@ public class JwtAuthenticationFilter
                     user.getPassword()
                 )
             );
+
         } catch (IOException e) {
-            throw new AuthenticationServiceException("Invalid login request");
+            throw new AuthenticationServiceException("Invalid login request", e);
         }
     }
 
@@ -73,7 +74,8 @@ public class JwtAuthenticationFilter
             (org.springframework.security.core.userdetails.User)
                 authResult.getPrincipal();
 
-        String token = Jwts.builder()
+
+        String accessToken = Jwts.builder()
             .subject(user.getUsername())
             .claim(
                 "roles",
@@ -82,21 +84,27 @@ public class JwtAuthenticationFilter
                     .toList()
             )
             .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
+            .expiration(
+                new Date(System.currentTimeMillis()
+                    + jwtProperties.getAccessExpirationMs())
+            )
             .signWith(SECRET_KEY)
             .compact();
 
-        ResponseCookie jwtCookie = ResponseCookie
-            .from(jwtProperties.getCookie().getName(), token)
-            .httpOnly(jwtProperties.getCookie().isHttpOnly())
-            .secure(jwtProperties.getCookie().isSecure())
-            .sameSite(jwtProperties.getCookie().getSameSite())
-            .path(jwtProperties.getCookie().getPath())
-            .maxAge(jwtProperties.getExpirationMs() / 1000)
+   
+        JwtProperties.Cookie accessCookieProps =
+            jwtProperties.getAccessCookie();
+
+        ResponseCookie accessCookie = ResponseCookie
+            .from(accessCookieProps.getName(), accessToken)
+            .httpOnly(accessCookieProps.isHttpOnly())
+            .secure(accessCookieProps.isSecure())
+            .sameSite(accessCookieProps.getSameSite())
+            .path(accessCookieProps.getPath())
+            .maxAge(jwtProperties.getAccessExpirationMs() / 1000)
             .build();
 
-
-        response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.setContentType("application/json");
 
         response.getWriter().write("""

@@ -28,28 +28,27 @@ useEffect(() => {
 
 
 
-  const login = async (username: string, password: string) => {
-    setLoading(true);
-    try {
-      await apiFetch("login", {
-        method: "POST",
-        body: JSON.stringify({ username, password }),
-      });
+const login = async (username: string, password: string) => {
+  setLoading(true);
+  try {
+    await apiFetch("login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
 
+    await checkAuth();   
+    router.replace("/dashboard");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      await checkAuth();
-
-      router.replace("/dashboard");
-    } finally {
-      setLoading(false);
-    }
-  };
 
 
   const logout = async () => {
     setLoading(true);
     try {
-      await apiFetch("users/logout", { method: "POST" });
+      await apiFetch("auth/logout", { method: "POST" });
       setUser(null);
       router.push("/login");
     } finally {
@@ -57,16 +56,17 @@ useEffect(() => {
     }
   };
 
-  const checkAuth = async () => {
-    try {
-      const res = await apiFetch<{ username: string }>("users/me");
-      setUser(res.username);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+const checkAuth = async () => {
+  try {
+    const res = await apiFetch<{ username: string }>("auth/me");
+    setUser(res.username);
+  } catch {
+    setUser(null);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <AuthContext.Provider

@@ -24,6 +24,7 @@ import com.app.springbootcrud.configuration.JwtProperties;
 import com.app.springbootcrud.security.filter.CsrfCookieFilter;
 import com.app.springbootcrud.security.filter.JwtAuthenticationFilter;
 import com.app.springbootcrud.security.filter.JwtValidationFilter;
+import com.app.springbootcrud.security.filter.LoginRateLimitFilter;
 
 import java.util.List;
 @Configuration
@@ -54,14 +55,18 @@ public class SpringSecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/login").permitAll()
-                .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
-                .requestMatchers(HttpMethod.GET, "/users/me").permitAll()
+                .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/logout").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
+            .addFilterBefore(
+                new LoginRateLimitFilter(),
+            UsernamePasswordAuthenticationFilter.class
+            )            
             .addFilter(new JwtAuthenticationFilter(authenticationManager,jwtProperties))
             .addFilterBefore(
-                new JwtValidationFilter(),
+                new JwtValidationFilter(jwtProperties),
                 UsernamePasswordAuthenticationFilter.class
             )
             .build();

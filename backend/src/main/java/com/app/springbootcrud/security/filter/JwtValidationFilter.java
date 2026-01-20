@@ -14,6 +14,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.app.springbootcrud.configuration.JwtProperties;
+
 import jakarta.servlet.http.Cookie;
 
 import io.jsonwebtoken.Claims;
@@ -24,8 +26,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-public class JwtValidationFilter
-        extends OncePerRequestFilter {
+public class JwtValidationFilter extends OncePerRequestFilter {
+
+    private final JwtProperties jwtProperties;
+
+    public JwtValidationFilter(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+    }
 
     @Override
     protected void doFilterInternal(
@@ -35,10 +42,12 @@ public class JwtValidationFilter
     ) throws IOException, ServletException {
 
         String token = null;
+        String cookieName =
+            jwtProperties.getAccessCookie().getName();
 
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if ("JWT_TOKEN".equals(cookie.getName())) {
+                if (cookieName.equals(cookie.getName())) {
                     token = cookie.getValue();
                 }
             }
@@ -85,4 +94,3 @@ public class JwtValidationFilter
         }
     }
 }
-
