@@ -100,7 +100,7 @@ public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody User 
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return null;
         }
 
         return ResponseEntity.ok(
