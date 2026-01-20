@@ -13,11 +13,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.app.springbootcrud.configuration.JwtProperties;
+import com.app.springbootcrud.security.filter.CsrfCookieFilter;
 import com.app.springbootcrud.security.filter.JwtAuthenticationFilter;
 import com.app.springbootcrud.security.filter.JwtValidationFilter;
 
@@ -34,9 +38,14 @@ public class SpringSecurityConfig {
     ) throws Exception {
 
         return http
-            .csrf(csrf -> csrf.disable()
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(
+                    CookieCsrfTokenRepository.withHttpOnlyFalse()
+                )
+                .csrfTokenRequestHandler(
+                    new CsrfTokenRequestAttributeHandler()
+                )
             )
-
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
             .sessionManagement(sm ->
@@ -46,15 +55,15 @@ public class SpringSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
+                .requestMatchers(HttpMethod.GET, "/users/me").permitAll()
                 .anyRequest().authenticated()
             )
-
+            .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
             .addFilter(new JwtAuthenticationFilter(authenticationManager,jwtProperties))
             .addFilterBefore(
                 new JwtValidationFilter(),
                 UsernamePasswordAuthenticationFilter.class
             )
-
             .build();
     }
 

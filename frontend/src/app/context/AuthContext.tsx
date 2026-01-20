@@ -12,6 +12,7 @@ type AuthContextType = {
   setUser: (user: string | null) => void;
 };
 
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -19,10 +20,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+useEffect(() => {
+  checkAuth();
+}, []);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+
+
 
 
   const login = async (username: string, password: string) => {

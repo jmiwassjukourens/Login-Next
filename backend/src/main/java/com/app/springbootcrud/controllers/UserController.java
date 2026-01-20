@@ -98,11 +98,16 @@ public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody User 
     }
 
     @GetMapping("/me")
-    public Map<String, String> me(Authentication authentication) {
-        return Map.of(
-            "username", authentication.getName()
+    public ResponseEntity<?> me(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return ResponseEntity.ok(
+            Map.of("username", authentication.getName())
         );
     }
+
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {

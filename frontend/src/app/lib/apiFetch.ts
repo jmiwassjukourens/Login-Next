@@ -1,3 +1,5 @@
+import { getCookie } from "./getCookie";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -11,6 +13,11 @@ export async function apiFetch<T>(
     ...(options.headers as Record<string, string>),
   };
 
+  const csrfToken = getCookie("XSRF-TOKEN");
+  if (csrfToken) {
+    headers["X-XSRF-TOKEN"] = csrfToken;
+  }
+
   const res = await fetch(`${API_BASE_URL}/${endpoint}`, {
     ...options,
     credentials: "include", 
@@ -18,6 +25,9 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      return null as T;
+    }
     throw new Error(`HTTP Error ${res.status}`);
   }
 

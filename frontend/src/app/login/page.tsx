@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import styles from "./login.module.css";
 import { useAuth } from "@/app/context/AuthContext";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await fetch(`${API_BASE_URL}/csrf`, {
+          credentials: "include",
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    };
+  
+    init();
+  }, []);
 
   return (
     <div className={styles.container}>
