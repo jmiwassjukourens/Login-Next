@@ -21,10 +21,12 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.app.springbootcrud.configuration.JwtProperties;
+import com.app.springbootcrud.security.filter.AccountLockoutFilter;
 import com.app.springbootcrud.security.filter.CsrfCookieFilter;
 import com.app.springbootcrud.security.filter.JwtAuthenticationFilter;
 import com.app.springbootcrud.security.filter.JwtValidationFilter;
 import com.app.springbootcrud.security.filter.LoginRateLimitFilter;
+import com.app.springbootcrud.services.RefreshTokenService;
 
 import java.util.List;
 @Configuration
@@ -35,7 +37,9 @@ public class SpringSecurityConfig {
     SecurityFilterChain filterChain(
             HttpSecurity http,
             AuthenticationManager authenticationManager,
-            JwtProperties jwtProperties
+            JwtProperties jwtProperties,
+            RefreshTokenService refreshTokenService,
+            AccountLockoutFilter accountLockoutFilter
     ) throws Exception {
 
         return http
@@ -48,15 +52,24 @@ public class SpringSecurityConfig {
                 )
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.deny())
+                .contentTypeOptions(contentType -> {})
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .maxAgeInSeconds(31536000)
+                    .includeSubDomains(true)
+                )
+            )
             .sessionManagement(sm ->
                 sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                 .requestMatchers(HttpMethod.POST,"/auth/refresh").permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/logout").permitAll()
+                .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
@@ -64,7 +77,7 @@ public class SpringSecurityConfig {
                 new LoginRateLimitFilter(),
             UsernamePasswordAuthenticationFilter.class
             )            
-            .addFilter(new JwtAuthenticationFilter(authenticationManager,jwtProperties))
+            .addFilter(new JwtAuthenticationFilter(authenticationManager, jwtProperties, refreshTokenService, accountLockoutFilter))
             .addFilterBefore(
                 new JwtValidationFilter(jwtProperties),
                 UsernamePasswordAuthenticationFilter.class

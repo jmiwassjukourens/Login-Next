@@ -20,7 +20,10 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.persistence.UniqueConstraint;
+
+import java.time.LocalDateTime;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @Entity
@@ -37,7 +40,12 @@ public class User {
     @Column(unique = true)
     private String username;
 
-    @NotBlank
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Pattern(
+        regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
+        message = "Password must contain at least one letter and one number"
+    )
     @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
@@ -62,9 +70,18 @@ public class User {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private boolean admin;
 
+    @Column(name = "failed_login_attempts")
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "account_locked_until")
+    private LocalDateTime accountLockedUntil;
+
     @PrePersist
     public void prePersist() {
         enabled = true;
+        if (failedLoginAttempts == 0) {
+            failedLoginAttempts = 0;
+        }
     }
 
     public Long getId() {
@@ -113,6 +130,26 @@ public class User {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public void setFailedLoginAttempts(int failedLoginAttempts) {
+        this.failedLoginAttempts = failedLoginAttempts;
+    }
+
+    public LocalDateTime getAccountLockedUntil() {
+        return accountLockedUntil;
+    }
+
+    public void setAccountLockedUntil(LocalDateTime accountLockedUntil) {
+        this.accountLockedUntil = accountLockedUntil;
+    }
+
+    public boolean isAccountLocked() {
+        return accountLockedUntil != null && accountLockedUntil.isAfter(LocalDateTime.now());
     }
 
     @Override

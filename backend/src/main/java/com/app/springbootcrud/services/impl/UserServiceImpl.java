@@ -13,6 +13,7 @@ import com.app.springbootcrud.entities.Role;
 import com.app.springbootcrud.entities.User;
 import com.app.springbootcrud.repositories.RoleRepository;
 import com.app.springbootcrud.repositories.UserRepository;
+import com.app.springbootcrud.services.RefreshTokenService;
 import com.app.springbootcrud.services.UserService;
 
 @Service
@@ -26,6 +27,9 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired(required = false)
+    private RefreshTokenService refreshTokenService;
 
     @Override
     @Transactional(readOnly = true)
@@ -95,26 +99,33 @@ public class UserServiceImpl implements UserService{
     @Override
     @Transactional
     public User update(Long id, User userDetails) {
-        System.out.println("pasa por aqui 4");
         User existingUser = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
-        System.out.println("pasa por aqui 5");
-        System.out.println(existingUser.getId());
-        System.out.println(existingUser.getUsername());
-        System.out.println(existingUser.getRoles());
         
-        // Actualizar campos necesarios
+        // Store old password to check if it changed
+        String oldPassword = existingUser.getPassword();
+        
+        // Update username
         existingUser.setUsername(userDetails.getUsername());
         
-        // Gestión de roles: se asigna siempre el rol "ROLE_USER"
+        // Role management: always assign "ROLE_USER"
         Optional<Role> optionalRoleUser = roleRepository.findByName("ROLE_USER");
         List<Role> roles = new ArrayList<>();
         optionalRoleUser.ifPresent(roles::add);
         existingUser.setRoles(roles);
         
-        System.out.println("pasa por aqui 6");
-        // Si lo necesitas, puedes actualizar la contraseña u otros campos
-        // existingUser.setPassword(userDetails.getPassword());
+        // If password is provided and different, update it and revoke tokens
+        if (userDetails.getPassword() != null && 
+            !userDetails.getPassword().isEmpty() &&
+            !userDetails.getPassword().equals(oldPassword)) {
+            
+            existingUser.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+            
+            // Revoke all refresh tokens for this user when password changes
+            if (refreshTokenService != null) {
+                refreshTokenService.invalidateByUsername(existingUser.getUsername());
+            }
+        }
     
         return repository.save(existingUser);
     }

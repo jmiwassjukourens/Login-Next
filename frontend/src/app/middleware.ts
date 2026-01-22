@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 const PROTECTED_ROUTES = ["/dashboard"];
 
 export function middleware(req: NextRequest) {
-  const session = req.cookies.get("JWT_TOKEN"); 
+  const session = req.cookies.get("JWT_ACCESS"); 
 
   const isProtected = PROTECTED_ROUTES.some(path =>
     req.nextUrl.pathname.startsWith(path)

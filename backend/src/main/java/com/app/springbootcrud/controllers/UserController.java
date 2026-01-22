@@ -1,6 +1,5 @@
 package com.app.springbootcrud.controllers;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 
+import com.app.springbootcrud.controllers.dto.UserUpdateDTO;
 import com.app.springbootcrud.entities.User;
 import com.app.springbootcrud.services.UserService;
 
@@ -37,6 +37,9 @@ public class UserController {
     @Autowired
     private UserService service;
 
+    @Autowired
+    private ErrorHandler errorHandler;
+
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_USER')")
     @GetMapping
     public List<User> list() {
@@ -50,7 +53,7 @@ public class UserController {
             User user = service.findById(id);
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonMap("error", e.getMessage()));
+            return errorHandler.createNotFoundResponse("User");
         }
     }
 
@@ -58,7 +61,7 @@ public class UserController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_USER')")
     public ResponseEntity<?> create(@Valid @RequestBody User user, BindingResult result) {
         if (result.hasFieldErrors()) {
-            return validation(result);
+            return errorHandler.createValidationErrorResponse(extractValidationErrors(result));
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(service.save(user));
     }
@@ -70,33 +73,42 @@ public class UserController {
             service.deleteById(id);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonMap("error", e.getMessage()));
+            return errorHandler.createNotFoundResponse("User");
         }
     }
 
 
 @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_USER')")
 @PutMapping("/{id}")
-public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody User userDetails, BindingResult result) {
-    userDetails.setPassword("asd"); // No debe ser nulo para la validacion pero igual el update no actualiza password
+public ResponseEntity<?> update(
+        @PathVariable Long id,
+        @Valid @RequestBody UserUpdateDTO userUpdateDTO,
+        BindingResult result
+) {
+    if (result.hasFieldErrors()) {
+        return errorHandler.createValidationErrorResponse(extractValidationErrors(result));
+    }
+    
     try {
+        // Create a User object with only the username for update
+        User userDetails = new User();
+        userDetails.setUsername(userUpdateDTO.getUsername());
+        
         User updatedUser = service.update(id, userDetails);
         return ResponseEntity.ok(updatedUser);
     } catch (RuntimeException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonMap("error", e.getMessage()));
+        return errorHandler.createNotFoundResponse("User");
     }
 }
 
 
  
-    private ResponseEntity<?> validation(BindingResult result) {
+    private Map<String, String> extractValidationErrors(BindingResult result) {
         Map<String, String> errors = new HashMap<>();
-
         result.getFieldErrors().forEach(err -> {
             errors.put(err.getField(), "The field " + err.getField() + " " + err.getDefaultMessage());
         });
-
-        return ResponseEntity.badRequest().body(errors);
+        return errors;
     }
 
 
