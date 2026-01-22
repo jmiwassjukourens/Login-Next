@@ -2,11 +2,13 @@ package com.app.springbootcrud.security.filter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
@@ -19,7 +21,10 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class LoginRateLimitFilter extends OncePerRequestFilter {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
+        .expireAfterWrite(2, TimeUnit.MINUTES)
+        .maximumSize(10_000)
+        .build();
 
     private Bucket newBucket() {
         Bandwidth limit = Bandwidth.builder()
@@ -33,7 +38,7 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
     }
 
     private Bucket resolveBucket(String ip) {
-        return buckets.computeIfAbsent(ip, key -> newBucket());
+        return buckets.get(ip, key -> newBucket());
     }
 
     @Override
@@ -42,10 +47,24 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
     }
 
     private String resolveClientIp(HttpServletRequest request) {
+        // Check X-Forwarded-For header (for reverse proxies)
         String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null) {
-            return forwarded.split(",")[0];
+        if (forwarded != null && !forwarded.isEmpty()) {
+            // X-Forwarded-For can contain multiple IPs, take the first one
+            String[] ips = forwarded.split(",");
+            String clientIp = ips[0].trim();
+            if (!clientIp.isEmpty()) {
+                return clientIp;
+            }
         }
+        
+        // Check X-Real-IP header (alternative for reverse proxies)
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isEmpty()) {
+            return realIp.trim();
+        }
+        
+        // Fall back to remote address
         return request.getRemoteAddr();
     }
 
